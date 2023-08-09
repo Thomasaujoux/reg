@@ -56,7 +56,7 @@ def main():
     import pandas as pd
     import seaborn as sb
 
-    df = pd.read_csv(r"C:\Users\Thomas Aujoux\nouv\v1\data_feature_final.cvs")
+    df = pd.read_csv(r"C:\Users\thoma\Documents\GitHub\reg\v1\data_feature_final.cvs")
     df = df.drop(["Unnamed: 0.1", "Unnamed: 0"], axis = 1)
 
     columns = ['duration_ms', 'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']
@@ -120,15 +120,16 @@ def main():
     for i in range(0, len(vect)-1):
         # Prépare la liste des scores
         score = [] 
-        recommandations = recom.get_track_recommendations([seed_tracks[i]], limit = num_tracks_to_recommend*2)
+        recommandations = recom.get_track_recommendations([seed_tracks[i]], limit = 50)
         for reco in recommandations: # On génére deux fois plus de recommandation car nous allons établir un score et juste prendre les meilleures
             score.append(reco.id)
         score = recom.get_features(score) # Trop la flemme de réfléchir a comment emboiter les classes, à reprendre proprement
         features_prec = recom.get_features([seed_tracks[i]])
-        get_score_values = recom.get_score(features_prec, score, model, weight_pos = 1, weight_model = 1.5)
-        print(get_score_values)
+        popu = recom.get_popularity(score)
+        get_score_values = recom.get_score(features_prec, score, popu, model, weight_pos = 0, weight_model = 0.25, weight_popu=1)
+        #print(get_score_values)
         get_score_ind = heapq.nlargest(num_tracks_to_recommend, range(len(get_score_values)), key=get_score_values.__getitem__)
-        print(get_score_ind)
+        #print(get_score_ind)
         
         for j in get_score_ind:
             recommended_tracks.append(recommandations[j])
@@ -136,15 +137,19 @@ def main():
     
     # On termine par remplir les dernières recommandations
     score = [] 
-    recommandations = recom.get_track_recommendations([seed_tracks[len(vect)-1]], limit = num_tracks_to_recommend*2)
+    recommandations = recom.get_track_recommendations([seed_tracks[len(vect)-1]], limit = 50)
     for reco in recommandations: # On génére deux fois plus de recommandation car nous allons établir un score et juste prendre les meilleures
         score.append(reco.id)
     score = recom.get_features(score) # Trop la flemme de réfléchir a comment emboiter les classes, à reprendre proprement
     features_prec = recom.get_features([seed_tracks[len(vect)-1]])
-    get_score_values = recom.get_score(features_prec, score, model, weight_pos = 1, weight_model = 1.5)
+    popu = recom.get_popularity(score)
+    get_score_values = recom.get_score(features_prec, score, popu, model, weight_pos = 0, weight_model = 0.25, weight_popu=1)
     print(get_score_values)
     get_score_ind = heapq.nlargest(num_tracks_to_recommend, range(len(get_score_values)), key=get_score_values.__getitem__)
     print(get_score_ind)
+
+    # 0 : 0.25 : 1 / 0 : 1 : 0.25 / 1 : 0 : 0 / 0 : 0  : 1
+    # 0 : 0.5 : 1 / 0 : 1 : 0.25 / 0 : 0.25 : 1 / 0 : 0  : 1
     
     for j in get_score_ind:
             recommended_tracks.append(recommandations[j])

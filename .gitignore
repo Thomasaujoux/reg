@@ -1,0 +1,4 @@
+*.json
+*.cvs
+*.pyc
+*.cache

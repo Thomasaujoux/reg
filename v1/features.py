@@ -9,6 +9,7 @@ from playlist import Playlist
 from userplaylists import Userplaylists
 from trackfeatures import TrackFeatures
 from spotifyuser import SpotifyUser
+from trackpopularity import TrackPopularity
 
 
 class Features(SpotifyUser):
@@ -63,8 +64,26 @@ class Features(SpotifyUser):
         tracks = [TrackFeatures(track['id'], track["duration_ms"], track["danceability"], track["energy"], track["key"], track['loudness'], track["mode"], track["speechiness"], track["acousticness"], track["instrumentalness"], track["liveness"], track["valence"], track['tempo'], track["time_signature"]) for track in response_json["audio_features"]]
         return tracks
     
+    def get_popularity(self, seed_tracks):
+        """Donnes toutes les features à partir d'un track
+        :param list of seed_tracks (List with str): The seed (id) of the track in str put in a list
+        :return features (Features): All the features needed
+        """
+        seed_tracks_url = ""
+        #print(seed_tracks)
+        for seed_track in seed_tracks:
+            seed_tracks_url += seed_track.id + ","
+        seed_tracks_url = seed_tracks_url[:-1]
+        url = f"https://api.spotify.com/v1/tracks?ids={seed_tracks_url}"
+        response = self._place_get_api_request(url)
+        response_json = response.json()
+        #print(response_json)
+        tracks = [TrackPopularity(track["id"], track["popularity"]) for track in response_json["tracks"]]
+        #print(tracks)
+        return tracks
     
-    def get_score(self, prec_features, new_features, model, weight_pos = 1, weight_model = 1):
+    
+    def get_score(self, prec_features, new_features, popu, model, weight_pos = 1, weight_model = 1, weight_popu = 1):
         """Donnes un score à un ensemble de recommandations
         :param list of TrackFeatures (List of the class TrackFeatures): The features of the track in class put in a list
         :return list of score (list of float): List of score for each track
@@ -79,7 +98,10 @@ class Features(SpotifyUser):
             df = pd.DataFrame(data, columns=["duration_ms", 'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature'])
             scoring_pos = (length - i) / length
             scoring_model = model.predict(df)
-            scoring = weight_pos * scoring_pos + weight_model * scoring_model[0]
+            popula = popu[i]
+            scoring_popu = popula.popularity / 100
+            print(scoring_popu)
+            scoring = weight_pos * scoring_pos + weight_model * scoring_model[0] + weight_popu * scoring_popu
 
             i = i + 1
             score_final.append(scoring)
